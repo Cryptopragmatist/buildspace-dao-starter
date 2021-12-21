@@ -4,17 +4,23 @@ import { useEffect, useMemo, useState } from "react";
 import { ThirdwebSDK } from "@3rdweb/sdk";
 // import thirdweb
 import { useWeb3, } from "@3rdweb/hooks";
+import { ethers } from "ethers";
+import dotenv from "dotenv";
 
+dotenv.config();
 // We instatiate the sdk on Rinkeby.
 const sdk = new ThirdwebSDK("rinkeby");
+console.log(process.env.DROP_ADDRESS);
 
 // We can grab a reference to our ERC-1155 contract.
-const bundleDropModule = sdk.getBundleDropModule(
-  "0x1Db298723BB2b64a72bC41DD210e6be11768b1bA",
-);
+const bundleDropModule = sdk.getBundleDropModule(process.env.DROP_ADDRESS);
+const tokenModule = sdk.getTokenModule(process.env.TOKEN_ADDRESS);
 
-  const App = () => {
+const voteModule = sdk.getVoteModule(process.env.VOTING_ADDRESS);
+
+const App = () => {
     // Use the connectWallet hook thirdweb gives us.
+    // eslint-disable-next-line
     const { connectWallet, address, error, provider } = useWeb3();
     console.log("👋 Address:", address)
 
@@ -27,7 +33,115 @@ const [hasClaimedNFT, setHasClaimedNFT] = useState(false);
 
   // isClaiming lets us easily keep a loading state while the NFT is minting.
   const [isClaiming, setIsClaiming] = useState(false);
+// Holds the amount of token each member has in state.
+const [memberTokenAmounts, setMemberTokenAmounts] = useState({});
+// The array holding all of our members addresses.
+const [memberAddresses, setMemberAddresses] = useState([]);
 
+const [proposals, setProposals] = useState([]);
+
+const [isVoting, setIsVoting] = useState(false);
+
+const [hasVoted, setHasVoted] = useState(false);
+
+// A fancy function to shorten someones wallet address, no need to show the whole thing. 
+const shortenAddress = (str) => {
+  return str.substring(0, 6) + "..." + str.substring(str.length - 4);
+};
+
+// This useEffect grabs all our the addresses of our members holding our NFT.
+useEffect(() => {
+  if (!hasClaimedNFT) {
+    return;
+  }
+  
+  // Just like we did in the 7-airdrop-token.js file! Grab the users who hold our NFT
+  // with tokenId 0.
+  bundleDropModule
+    .getAllClaimerAddresses("0")
+    .then((addresess) => {
+      console.log("🚀 Members addresses", addresess)
+      setMemberAddresses(addresess);
+    })
+    .catch((err) => {
+      console.error("failed to get member list", err);
+    });
+}, [hasClaimedNFT]);
+
+// This useEffect grabs the # of token each member holds.
+useEffect(() => {
+  if (!hasClaimedNFT) {
+    return;
+  }
+
+  // Grab all the balances.
+  tokenModule
+    .getAllHolderBalances()
+    .then((amounts) => {
+      console.log("👜 Amounts", amounts)
+      setMemberTokenAmounts(amounts);
+    })
+    .catch((err) => {
+      console.error("failed to get token amounts", err);
+    });
+}, [hasClaimedNFT]);
+
+// Retreive all our existing proposals from the contract.
+useEffect(() => {
+  if (!hasClaimedNFT) {
+    return;
+  }
+  // A simple call to voteModule.getAll() to grab the proposals.
+  voteModule
+    .getAll()
+    .then((proposals) => {
+      // Set state!
+      setProposals(proposals);
+      console.log("🌈 Proposals:", proposals)
+    })
+    .catch((err) => {
+      console.error("failed to get proposals", err);
+    });
+}, [hasClaimedNFT]);
+
+// We also need to check if the user already voted.
+useEffect(() => {
+  if (!hasClaimedNFT) {
+    return;
+  }
+
+  // If we haven't finished retreieving the proposals from the useEffect above
+  // then we can't check if the user voted yet!
+  if (!proposals.length) {
+    return;
+  }
+
+  // Check if the user has already voted on the first proposal.
+  voteModule
+    .hasVoted(proposals[0].proposalId, address)
+    .then((hasVoted) => {
+      setHasVoted(hasVoted);
+      console.log("🥵 User has already voted")
+    })
+    .catch((err) => {
+      console.error("failed to check if wallet has voted", err);
+    });
+}, [hasClaimedNFT, proposals, address]);
+
+// Now, we combine the memberAddresses and memberTokenAmounts into a single array
+const memberList = useMemo(() => {
+  return memberAddresses.map((address) => {
+    return {
+      address,
+      tokenAmount: ethers.utils.formatUnits(
+        // If the address isn't in memberTokenAmounts, it means they don't
+        // hold any of our token.
+        memberTokenAmounts[address] || 0,
+        18,
+      ),
+    };
+  });
+}, [memberAddresses, memberTokenAmounts]);
 useEffect(() => {
 
   // We pass the signer to the sdk, which enables us to interact with
@@ -75,11 +189,36 @@ useEffect(() => {
 
   }
   // Add this little piece!
+  // If the user has already claimed their NFT we want to display the interal DAO page to them
+// only DAO members will see this. Render all the members + token amounts.
 if (hasClaimedNFT) {
   return (
     <div className="member-page">
-      <h1>🍪DAO Member Page</h1>
+      <h1>🍪SCIDAO Member Page</h1>
       <p>Congratulations on being a member</p>
+      <div>
+        <div>
+          <h2>Member List</h2>
+          <table className="card">
+            <thead>
+              <tr>
+                <th>Address</th>
+                <th>Token Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {memberList.map((member) => {
+                return (
+                  <tr key={member.address}>
+                    <td>{shortenAddress(member.address)}</td>
+                    <td>{member.tokenAmount}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
