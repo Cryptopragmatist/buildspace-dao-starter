@@ -6,10 +6,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Our voting contract.
-const voteModule = sdk.getVoteModule(process.env.VOTING_ADDRESS);
+//const voteModule = sdk.getVoteModule(process.env.VOTING_ADDRESS);
 
 // Our ERC-20 contract.
-const tokenModule = sdk.getTokenModule(process.env.TOKEN_ADDRESS);
+//const tokenModule = sdk.getTokenModule(process.env.TOKEN_ADDRESS);
+
+const tokenModule = sdk.getTokenModule("0xda337C70a7292ABa42eb82757Bdaa65058bb4312");
+
+const voteModule = sdk.getVoteModule("0x71304457Be14949F769830dA5f68af10Fe125524");
 
 (async () => {
   try {

@@ -4,8 +4,8 @@ body {
   font-family: Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #7700ee;
-  color: #fff;
+  background-color: #ee0000;
+  color: rgb(241, 245, 6);
   overflow-x: hidden;
 }
 #root {

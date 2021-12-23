@@ -12,10 +12,10 @@ const sdk = new ThirdwebSDK("rinkeby");
 console.log(process.env.DROP_ADDRESS);
 
 // We can grab a reference to our ERC-1155 contract.
-const bundleDropModule = sdk.getBundleDropModule(process.env.DROP_ADDRESS);
-const tokenModule = sdk.getTokenModule(process.env.TOKEN_ADDRESS);
+const bundleDropModule = sdk.getBundleDropModule("0x69d77025893407Dd59F35e7110E87d44B5aec45c");
+const tokenModule = sdk.getTokenModule("0xda337C70a7292ABa42eb82757Bdaa65058bb4312");
 
-const voteModule = sdk.getVoteModule(process.env.VOTING_ADDRESS);
+const voteModule = sdk.getVoteModule("0x71304457Be14949F769830dA5f68af10Fe125524");
 
 const App = () => {
     // Use the connectWallet hook thirdweb gives us.
@@ -175,7 +175,7 @@ useEffect(() => {
         });
     }, [hasClaimedNFT, proposals, address]);
   
-    /*if (error && error.name === "UnsupportedChainIdError") {
+    if (error && error.name === "UnsupportedChainIdError") {
       return (
         <div className="unsupported-network">
           <h2>Please connect to Rinkeby</h2>
@@ -185,7 +185,7 @@ useEffect(() => {
           </p>
         </div>
       );
-    }*/
+    }
 
    // This is the case where the user hasn't connected their wallet
   // to your web app. Let them call connectWallet.
